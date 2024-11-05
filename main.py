@@ -6,12 +6,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-#draft
+# draft
 import base64
 from email.message import EmailMessage
 import google.auth
-
-
 
 import google.auth
 
@@ -27,7 +25,7 @@ TODO
 
 '''
 
-#https://developers.google.com/gmail/api/auth/scopes
+# https://developers.google.com/gmail/api/auth/scopes
 SCOPES = ["https://mail.google.com/"]
 
 CLIENT_SECRET_FILE = "client_secret_dinhthomtest.json"
@@ -35,6 +33,7 @@ CLIENT_SECRET_FILE = "client_secret_dinhthomtest.json"
 cwd = os.getcwd()
 CLIENT_SECRET_FILE_PATH = f"{cwd}/{CLIENT_SECRET_FILE}"
 credentials = None
+
 
 def auth():
     creds = None
@@ -76,9 +75,8 @@ def auth():
     return creds
 
 
-
-def gmail_read_emails(creds):
-  """Create and insert a draft email.
+def gmail_read_emails_id(creds):
+    """Create and insert a draft email.
    Print the returned draft's message and id.
    Returns: Draft object, including draft id and message meta data.
 
@@ -87,35 +85,48 @@ def gmail_read_emails(creds):
   for guides on implementing OAuth2 for the application.
   """
 
-  try:
-    # create gmail api client
+    try:
+        # create gmail api service
+        service = build("gmail", "v1", credentials=creds)
+
+        # Get a list of message IDs
+        results = service.users().messages().list(userId='me', maxResults=10).execute()
+        messages = results.get('messages', [])
+
+        if not messages:
+            print('No messages found.')
+
+        else:
+            print('Message IDs:')
+            for message in messages:
+                print(message['id'])
+
+
+
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+        draft = None
+
+
+def get_gmail_emails_v2(creds, query_string: str):
     service = build("gmail", "v1", credentials=creds)
 
-    # Get a list of message IDs
-    results = service.users().messages().list(userId='me', maxResults=10).execute()
+    results = service.users().messages().list(userId='me', q=query_string, maxResults=10).execute()
     messages = results.get('messages', [])
-
     if not messages:
         print('No messages found.')
-
     else:
-        print('Message IDs:')
+        print('Messages:')
         for message in messages:
-            print(message['id'])
-
-
-
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    draft = None
-
-
+            msg = service.users().messages().get(userId='me', id=message['id']).execute()
+            print(f"Message snippet: {msg['snippet']}")
 
 
 def main():
-    #token
+    # token
     credentials = auth()
-    gmail_read_emails(credentials)
+    gmail_read_emails_id(credentials)
+    get_gmail_emails_v2(credentials, "before:2025/01/01")
     print("Hello!")
 
 
